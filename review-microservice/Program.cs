@@ -2,22 +2,31 @@ using Microsoft.EntityFrameworkCore;
 using review_microservice.Data;
 using review_microservice.Interfaces;
 using review_microservice.Repositories;
+using review_microservice.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddDbContext<AppDbContext>(opt => {
+
+builder.Services.AddDbContext<AppDbContext>(opt =>
+{
     opt.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
 
 builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
-builder.Services.AddScoped<IRatingRepository, RatingRepository>();
-builder.Services.AddScoped<ICommentRepository, CommentRepository>();
+
+builder.Services.AddHttpClient<IDiscogsService, DiscogsService>((serviceProvider, client) =>
+{
+    var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+
+    var baseUrl = configuration["Discogs:BaseUrl"];
+    var userAgent = configuration["Discogs:UserAgent"];
+
+    client.BaseAddress = new Uri(baseUrl!);
+    client.DefaultRequestHeaders.Add("User-Agent", userAgent!);
+});
 
 var app = builder.Build();
 
@@ -26,7 +35,6 @@ if (args.Length != 0 && args[0].Contains("seeddata"))
     Seed.SeedData(app);
 }
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -34,9 +42,6 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
 app.UseAuthorization();
-
 app.MapControllers();
-
 app.Run();
