@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.VisualBasic;
 using user_microservice.Dtos;
@@ -48,19 +49,17 @@ namespace user_microservice.Controllers
             return Ok(userDto);
         }
 
+        [AllowAnonymous]
         [HttpPost("login")]
         public async Task<ActionResult<AuthResponseDto>> Login([FromBody] LoginInputDto model)
         {
-            // 1. Szukamy użytkownika w bazie (zamiast loginu, zazwyczaj używa się emaila)
             var user = await _userManager.FindByEmailAsync(model.Email);
 
             if (user == null)
             {
-                // Nie zdradzamy hakerom, czy taki email istnieje - zawsze ogólny błąd
                 return Unauthorized("Nieprawidłowy email lub hasło.");
             }
 
-            // 2. Sprawdzamy, czy hasło się zgadza (używamy UserManager, nie SignInManager!)
             var isPasswordValid = await _userManager.CheckPasswordAsync(user, model.Password);
 
             if (!isPasswordValid)
@@ -68,52 +67,19 @@ namespace user_microservice.Controllers
                 return Unauthorized("Nieprawidłowy email lub hasło.");
             }
 
-            // 3. Hasło poprawne! Generujemy Token JWT
-            var token = 1; // _tokenService.CreateToken(user);
+            var token = _tokenService.CreateToken(user);
 
             // 4. Zwracamy paczkę JSON do Vue.js
             return Ok(new AuthResponseDto
             {
                 Id = user.Id,
                 Email = user.Email,
-                Token = ""
+                Token = token
             });
         }
     }
 
-    //[HttpPost]
-    //public async Task<IActionResult> Login(LoginViewModel loginVM)
-    //{
-    //    if (!ModelState.IsValid)
-    //    {
-    //        return View(loginVM);
-    //    }
 
-    //    var user = await _userManager.FindByEmailAsync(loginVM.Email);
-
-    //    if (user != null)
-    //    {
-    //        var passwordCheck = await _userManager.CheckPasswordAsync(user, loginVM.Password);
-    //        if (passwordCheck)
-    //        {
-    //            var result = await _signInManager.PasswordSignInAsync(user, loginVM.Password, false, false);
-    //            if (result.Succeeded)
-    //            {
-    //                return RedirectToAction("Index", "Home");
-    //            }
-    //        }
-    //        TempData["Error"] = "Niepoprawne hasło, spróbuj ponownie.";
-    //        return View(loginVM);
-    //    }
-    //    TempData["Error"] = "Nie znaleziono konta o takim adresie e-mail.";
-    //    return View(loginVM);
-    //}
-
-    //public IActionResult Register()
-    //{
-    //    var response = new RegisterViewModel();
-    //    return View(response);
-    //}
 
     //[HttpPost]
     //public async Task<IActionResult> Register(RegisterViewModel registerVM)
