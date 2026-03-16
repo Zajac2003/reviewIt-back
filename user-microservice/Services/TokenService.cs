@@ -27,14 +27,14 @@ namespace user_microservice.Services
                 new Claim(JwtRegisteredClaimNames.Email, user.Email!)
             };
 
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JwtConfig:Key"]));
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var token = new JwtSecurityToken(
-                issuer: _configuration["JwtConfig:Issuer"],
-                audience: _configuration["JwtConfig:Audience"],
+                issuer: _configuration["Jwt:Issuer"],
+                audience: _configuration["Jwt:Audience"],
                 claims: claims,
-                expires: DateTime.Now.AddMinutes(double.Parse(_configuration["JwtConfig:ExpirationMinutes"])),
+                expires: DateTime.Now.AddMinutes(double.Parse(_configuration["Jwt:TokenExpirationInMinutes"])),
                 signingCredentials: creds
             );
 

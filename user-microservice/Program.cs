@@ -1,10 +1,13 @@
 
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using user_microservice.Data;
+using user_microservice.Interfaces;
 using user_microservice.Models;
+using user_microservice.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,13 +23,16 @@ builder.Services.AddDbContext<AppDbContext>(opt =>
     opt.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
 
-builder.Services.AddIdentityCore<AppUser>(options =>
+builder.Services.AddIdentity<AppUser, IdentityRole>(options =>
 {
     options.Password.RequireDigit = true;
     options.Password.RequiredLength = 8;
     options.User.RequireUniqueEmail = true;
 })
-    .AddEntityFrameworkStores<AppDbContext>();
+.AddEntityFrameworkStores<AppDbContext>()
+.AddDefaultTokenProviders();
+
+builder.Services.AddScoped<ITokenService, TokenService>();
 
 builder.Services.AddAuthentication(options =>
 {
@@ -51,6 +57,11 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
+
+if (args.Length != 0 && args[0].Contains("seeddata"))
+{
+    await Seed.SeedUsersAndRolesAsync(app);
+}
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {

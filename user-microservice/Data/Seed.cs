@@ -51,7 +51,7 @@ namespace user_microservice.Data
                     await userManager.AddToRoleAsync(newAppUser, UserRoles.User);
                 }
 
-                string modEmail = "user@mail.com";
+                string modEmail = "mod@mail.com";
 
                 var mod = await userManager.FindByEmailAsync(modEmail);
                 if (mod == null)
@@ -63,7 +63,7 @@ namespace user_microservice.Data
                         EmailConfirmed = true,
                     };
                     await userManager.CreateAsync(newMod, "Abc-12345");
-                    await userManager.AddToRoleAsync(newMod, UserRoles.User);
+                    await userManager.AddToRoleAsync(newMod, UserRoles.Moderator);
                 }
             }
         }
