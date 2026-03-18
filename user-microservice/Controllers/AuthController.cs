@@ -5,6 +5,8 @@ using user_microservice.Data;
 using user_microservice.Dtos;
 using user_microservice.Interfaces;
 using user_microservice.Models;
+using System.Security.Claims;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace user_microservice.Controllers
 {
@@ -41,6 +43,32 @@ namespace user_microservice.Controllers
             };
 
             return Ok(userDto);
+        }
+
+        [Authorize]
+        [HttpGet("me")]
+        public async Task<ActionResult<AppUserReadDto>> GetMe()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                         ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+
+            if (userId == null)
+            {
+                return Unauthorized("Invalid token.");
+            }
+
+            var user = await _userManager.FindByIdAsync(userId);
+
+            if (user == null)
+            {
+                return NotFound("User not found.");
+            }
+
+            return Ok(new AppUserReadDto
+            {
+                Id = user.Id,
+                Username = user.UserName!
+            });
         }
 
         [AllowAnonymous]
