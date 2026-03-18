@@ -1,8 +1,15 @@
-﻿namespace user_microservice.Dtos
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace user_microservice.Dtos
 {
     public class LoginInputDto
     {
-        public string Email { get; set; } 
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; }
+
+        [Required]
+        [MinLength(6)]
         public string Password { get; set; }
     }
 }
