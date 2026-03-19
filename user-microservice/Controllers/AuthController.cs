@@ -75,6 +75,11 @@ namespace user_microservice.Controllers
         [HttpPost("register")]
         public async Task<ActionResult<AuthResponseDto>> Register([FromBody] RegisterInputDto model)
         {
+            if (User.Identity.IsAuthenticated)
+            {
+                return BadRequest("You are already logged in.");
+            }
+
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
@@ -121,6 +126,11 @@ namespace user_microservice.Controllers
         [HttpPost("logout")]
         public IActionResult Logout()
         {
+            if (!User.Identity.IsAuthenticated)
+            {
+                return BadRequest("You are not logged in.");
+            }
+
             return Ok("Logged out");
         }
 
@@ -128,6 +138,11 @@ namespace user_microservice.Controllers
         [HttpPost("login")]
         public async Task<ActionResult<AuthResponseDto>> Login([FromBody] LoginInputDto model)
         {
+            if (User.Identity.IsAuthenticated)
+            {
+                return BadRequest("You are already logged in.");
+            }
+
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
