@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using review_microservice.Dtos;
 using review_microservice.Interfaces;
 using review_microservice.Models;
@@ -7,6 +8,7 @@ namespace review_microservice.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class CommentController : ControllerBase
     {
         private readonly ICommentRepository _commentRepository;
@@ -23,7 +25,7 @@ namespace review_microservice.Controllers
         {
             var review = await _reviewRepository.GetByIdAsync(reviewId);
 
-            if(review == null)
+            if (review == null)
             {
                 return NotFound($"Review with id {reviewId} not found.");
             }
@@ -46,7 +48,7 @@ namespace review_microservice.Controllers
         {
             var review = await _reviewRepository.GetByIdAsync(dto.ReviewId);
 
-            if(review == null)
+            if (review == null)
             {
                 return BadRequest($"Review with id {dto.ReviewId} not found.");
             }

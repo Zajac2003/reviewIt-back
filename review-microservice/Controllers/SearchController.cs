@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using review_microservice.Dtos;
 using review_microservice.Interfaces;
 
@@ -16,6 +17,7 @@ namespace review_microservice.Controllers
         }
 
         [HttpGet("discogs")]
+        [Authorize]
         public async Task<ActionResult<PagedResponseDto<DiscogsSearchItemDto>>> SearchDiscogs(
             [FromQuery] string q,
             [FromQuery] int page = 1,

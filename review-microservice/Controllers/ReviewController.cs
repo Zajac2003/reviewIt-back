@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using review_microservice.Dtos;
 using review_microservice.Interfaces;
 using review_microservice.Models;
@@ -7,11 +8,12 @@ namespace review_microservice.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class ReviewController : ControllerBase
     {
         private readonly IReviewRepository _reviewRepository;
 
-        public ReviewController(IReviewRepository repository) 
+        public ReviewController(IReviewRepository repository)
         {
             _reviewRepository = repository;
         }
@@ -33,7 +35,6 @@ namespace review_microservice.Controllers
             });
 
             return Ok(reviewDtos);
-
         }
 
         [HttpGet("{id}", Name = "GetReviewById")]
@@ -54,13 +55,12 @@ namespace review_microservice.Controllers
                     Value = review.Value
                 };
                 return Ok(reviewDto);
-
             }
             else return NotFound();
         }
 
         [HttpPost]
-        public async Task<ActionResult<ReviewReadDto>> CreateReview([FromBody]ReviewCreateDto dto)
+        public async Task<ActionResult<ReviewReadDto>> CreateReview([FromBody] ReviewCreateDto dto)
         {
             var review = new Review()
             {
@@ -89,6 +89,6 @@ namespace review_microservice.Controllers
                 return CreatedAtRoute(nameof(GetReviewById), new { id = reviewRead.Id }, reviewRead);
             }
             else return BadRequest();
-        } 
+        }
     }
 }
