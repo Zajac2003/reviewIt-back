@@ -25,7 +25,6 @@ namespace user_microservice.Controllers
             _tokenService = tokenService;
         }
 
-        [Authorize]
         [HttpGet("{id}")]
         public async Task<ActionResult<AppUserReadDto>> GetUserById(string id)
         {
@@ -75,14 +74,9 @@ namespace user_microservice.Controllers
         [HttpPost("register")]
         public async Task<ActionResult<AuthResponseDto>> Register([FromBody] RegisterInputDto model)
         {
-            if (User.Identity.IsAuthenticated)
+            if (User.Identity?.IsAuthenticated == true)
             {
                 return BadRequest("You are already logged in.");
-            }
-
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
             }
 
             var existingUserByEmail = await _userManager.FindByEmailAsync(model.Email);
@@ -112,26 +106,11 @@ namespace user_microservice.Controllers
 
             await _userManager.AddToRoleAsync(user, UserRoles.User);
 
-            var token = await _tokenService.CreateToken(user);
-
             return Ok(new AuthResponseDto
             {
                 Id = user.Id,
                 Email = user.Email!,
-                Token = token
             });
-        }
-
-        [Authorize]
-        [HttpPost("logout")]
-        public IActionResult Logout()
-        {
-            if (!User.Identity.IsAuthenticated)
-            {
-                return BadRequest("You are not logged in.");
-            }
-
-            return Ok("Logged out");
         }
 
         [AllowAnonymous]
@@ -162,14 +141,20 @@ namespace user_microservice.Controllers
                 return Unauthorized("Invalid email or password.");
             }
 
-            var token = await _tokenService.CreateToken(user);
-
-            return Ok(new AuthResponseDto
+            try
             {
-                Id = user.Id,
-                Email = user.Email!,
-                Token = token
-            });
+                var token = await _tokenService.CreateToken(user);
+                return Ok(new AuthResponseDto
+                {
+                    Id = user.Id,
+                    Email = user.Email!,
+                    Token = token
+                });
+            }
+            catch(Exception ex)
+            {
+                return StatusCode(500, $"Error generating token: {ex.Message}");
+            }
         }
     }
 }

@@ -17,7 +17,6 @@ namespace review_microservice.Controllers
         }
 
         [HttpGet("discogs")]
-        [Authorize]
         public async Task<ActionResult<PagedResponseDto<DiscogsSearchItemDto>>> SearchDiscogs(
             [FromQuery] string q,
             [FromQuery] int page = 1,

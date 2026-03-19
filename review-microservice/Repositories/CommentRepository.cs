@@ -44,5 +44,10 @@ namespace review_microservice.Repositories
                 .Where(c => c.ReviewId == reviewId)
                 .ToArrayAsync();
         }
+
+        public async Task<Comment?> GetByIdAsync(int id)
+        {
+            return await _context.Comments.FirstOrDefaultAsync(c => c.Id == id);
+        }
     }
 }

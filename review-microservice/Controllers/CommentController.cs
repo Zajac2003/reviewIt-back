@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using review_microservice.Dtos;
 using review_microservice.Interfaces;
 using review_microservice.Models;
+using System.Security.Claims;
 
 namespace review_microservice.Controllers
 {
@@ -20,6 +21,8 @@ namespace review_microservice.Controllers
             _reviewRepository = reviewRepository;
         }
 
+        //pobiera komentarze do recenzji o danym id, dostępne dla wszystkich, nawet niezalogowanych
+        [AllowAnonymous]
         [HttpGet("review/{reviewId}", Name = "GetCommentsByReview")]
         public async Task<ActionResult<IReadOnlyCollection<ReviewReadDto>>> GetCommentsByReview(int reviewId)
         {
@@ -43,6 +46,7 @@ namespace review_microservice.Controllers
             return Ok(commentDtos);
         }
 
+        //dodaje komentarz do recenzji o danym id, dostępne tylko dla zalogowanych użytkowników (wszystkie role)
         [HttpPost]
         public async Task<ActionResult<CommentReadDto>> CreateComment([FromBody] CommentCreateDto dto)
         {
@@ -74,6 +78,33 @@ namespace review_microservice.Controllers
                 return CreatedAtRoute(nameof(GetCommentsByReview), new { reviewId = review.Id }, commentRead);
             }
             else return BadRequest();
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<ActionResult> DeleteComment(int id)
+        {
+            var comment = await _commentRepository.GetByIdAsync(id);
+            if (comment == null)
+            {
+                return NotFound($"Comment with id {id} not found.");
+            }
+
+            if(User.IsInRole("Admin") || 
+                User.IsInRole("Moderator") || 
+                User.FindFirstValue(ClaimTypes.NameIdentifier) == comment.AppUserId)
+            {
+                var success = await _commentRepository.DeleteAsync(comment);
+                if (success)
+                {
+                    return NoContent();
+                }
+                else return BadRequest($"Unable to delete comment with id: {id}");
+            }
+            else
+            {
+                return Forbid();
+            }
+            
         }
     }
 }
