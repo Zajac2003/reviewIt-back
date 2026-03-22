@@ -1,12 +1,15 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using user_microservice.Data;
 using user_microservice.Dtos;
 using user_microservice.Interfaces;
+using user_microservice.Migrations;
 using user_microservice.Models;
-using System.Security.Claims;
-using System.IdentityModel.Tokens.Jwt;
 
 namespace user_microservice.Controllers
 {
@@ -14,15 +17,33 @@ namespace user_microservice.Controllers
     [Route("api/[controller]")]
     public class AuthController : ControllerBase
     {
+        private readonly IConfiguration _configuration;
         private readonly UserManager<AppUser> _userManager;
         private readonly ITokenService _tokenService;
+        private readonly int _refreshTokenExpirationInDays;
 
         public AuthController(
+            IConfiguration configuration,
             UserManager<AppUser> userManager,
             ITokenService tokenService)
         {
+            _configuration = configuration;
             _userManager = userManager;
             _tokenService = tokenService;
+            _refreshTokenExpirationInDays = _configuration.GetValue<int>("RefreshToken:ExpirationInDays", 7);
+        }
+
+        private CookieOptions GetRefreshTokenCookieOptions()
+        {
+            var cookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Expires = DateTime.UtcNow.AddDays(_refreshTokenExpirationInDays),
+                SameSite = SameSiteMode.Lax, // pozwala na działanie między localhostami
+                Secure = false // z https musi być true
+            };
+
+            return cookieOptions;
         }
 
         [HttpGet("{id}")]
@@ -67,6 +88,64 @@ namespace user_microservice.Controllers
             {
                 Id = user.Id,
                 Username = user.UserName!
+            });
+        }
+
+        [AllowAnonymous]
+        [HttpPost("refresh")]
+        public async Task<ActionResult<AuthResponseDto>> RefreshToken([FromBody] RefreshTokenDto dto)
+        {
+            var rawToken = dto.Token;
+
+            if (string.IsNullOrEmpty(rawToken))
+            {
+                return BadRequest("Token is required.");
+            }
+
+            ClaimsPrincipal principal = null;
+
+            try
+            {
+                principal = _tokenService.GetPrincipalFromExpiredToken(rawToken);
+            }catch(Exception ex)
+            {
+                return BadRequest($"Invalid token: {ex.Message}");
+            }
+
+            var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)
+              ?? principal.FindFirstValue(JwtRegisteredClaimNames.Sub);
+
+            if (userId == null)
+                return Unauthorized();
+            
+            var user = await _userManager.FindByIdAsync(userId);
+
+            if (user == null)
+            {
+                return NotFound();
+            }
+
+            var rToken = Request.Cookies["refreshToken"];
+
+            if(rToken == null || user.RefreshToken != rToken || user.RefreshTokenExpiryTime < DateTime.UtcNow)
+            {
+                return Unauthorized();
+            }
+
+            var newJwtToken = await _tokenService.CreateToken(user);
+            string newRefreshToken = _tokenService.CreateRefreshToken();
+
+            user.RefreshToken = newRefreshToken;
+            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(_refreshTokenExpirationInDays);
+            await _userManager.UpdateAsync(user);
+
+            Response.Cookies.Append("refreshToken", newRefreshToken, GetRefreshTokenCookieOptions());
+
+            return Ok(new AuthResponseDto
+            {
+                Id = user.Id,
+                Email = user.Email!,
+                Token = newJwtToken
             });
         }
 
@@ -122,11 +201,6 @@ namespace user_microservice.Controllers
                 return BadRequest("You are already logged in.");
             }
 
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
             var user = await _userManager.FindByEmailAsync(model.Email);
 
             if (user == null)
@@ -144,6 +218,18 @@ namespace user_microservice.Controllers
             try
             {
                 var token = await _tokenService.CreateToken(user);
+                string refreshToken = _tokenService.CreateRefreshToken();
+                int refreshTokenExpirationInDays = _configuration.GetValue<int>("RefreshToken:ExpirationInDays", 7);
+
+                user.RefreshToken = refreshToken;
+                user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(refreshTokenExpirationInDays);
+                await _userManager.UpdateAsync(user);
+
+
+                var cookieOptions = GetRefreshTokenCookieOptions();
+
+                Response.Cookies.Append("refreshToken", refreshToken, cookieOptions);
+
                 return Ok(new AuthResponseDto
                 {
                     Id = user.Id,

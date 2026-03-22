@@ -124,7 +124,7 @@ namespace review_microservice.Controllers
             else if (!isRatingOnly && updateHasEmptyContent)
             {
                 return BadRequest("Cannot update review with empty title and content. " +
-                      "If you want to update only the rating, please provide the existing title and content.");)
+                      "If you want to update only the rating, please provide the existing title and content.");
             }
             else
             {
