@@ -363,3 +363,4 @@ MigrationBackup/
 FodyWeavers.xsd
 review-microservice/appsettings.Local.json
 user-microservice/appsettings.Local.json
+review-microservice/appsettings.Development.json
