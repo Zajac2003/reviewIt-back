@@ -33,6 +33,7 @@ namespace review_microservice.Controllers
                 return NotFound($"Review with id {reviewId} not found.");
             }
 
+
             var comments = await _commentRepository.GetByReviewAsync(reviewId);
 
             var commentDtos = comments.Select(c => new CommentReadDto
@@ -57,11 +58,17 @@ namespace review_microservice.Controllers
                 return BadRequest($"Review with id {dto.ReviewId} not found.");
             }
 
+            if (User.FindFirstValue(ClaimTypes.NameIdentifier) != dto.AppUserId)
+            {
+                return Forbid();
+            }
+
             var comment = new Comment()
             {
                 Content = dto.Content,
                 CreatedDate = DateTime.UtcNow,
-                AppUserId = dto.AppUserId //na razie tak 
+                AppUserId = dto.AppUserId,
+                ReviewId = dto.ReviewId
             };
 
             var success = await _commentRepository.AddAsync(comment);

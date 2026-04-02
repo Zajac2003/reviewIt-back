@@ -21,6 +21,11 @@ namespace user_microservice.Data
 
                 var userManager = serviceScope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
 
+                if(userManager.Users.Any())
+                {
+                    return;
+                }
+
                 string adminUserEmail = "admin@mail.com";
 
                 var adminUser = await userManager.FindByEmailAsync(adminUserEmail);
