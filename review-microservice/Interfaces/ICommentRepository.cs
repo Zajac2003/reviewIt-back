@@ -9,5 +9,6 @@ namespace review_microservice.Interfaces
         Task<bool> DeleteAsync(Comment comment);
         Task<bool> SaveAsync();
         Task<IReadOnlyCollection<Comment>> GetByReviewAsync(int reviewId);
+        Task<Comment?> GetByIdAsync(int id);
     }
 }

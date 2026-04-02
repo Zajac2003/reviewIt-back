@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  # --- BAZA DANYCH (Odizolowana) ---
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=${SQL_PASSWORD}
+    ports:
+      - "127.0.0.1:1433:1433"
+    networks:
+      - backend-network
+
+  # --- AUTH API ---
+  auth-api:
+    build:
+      context: ./user-microservice
+      dockerfile: Dockerfile
+    ports:
+      - "5000:8080"
+    depends_on:
+      - sqlserver
+    environment:
+      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=AuthDb;User Id=sa;Password=${SQL_PASSWORD};TrustServerCertificate=True;
+      - Jwt__Key=${JWT_KEY}
+      - Jwt__Issuer=http://auth-api:5000
+      - Jwt__Audience=http://review-api:5001
+      - ALLOWEDHOSTS=localhost;auth-api;review-api
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+    networks:
+      - backend-network
+
+  # --- REVIEW API ---
+  review-api:
+    build:
+      context: ./review-microservice
+      dockerfile: Dockerfile
+    ports:
+      - "5001:8080"
+    depends_on:
+      - sqlserver
+    environment:
+      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=ReviewDb;User Id=sa;Password=${SQL_PASSWORD};TrustServerCertificate=True;
+      - Jwt__Key=${JWT_KEY}
+      - Jwt__Issuer=http://auth-api:5000
+      - Jwt__Audience=http://review-api:5001
+      - ALLOWEDHOSTS=localhost;auth-api;review-api
+      - ASPNETCORE_URLS=http://+:8080
+      - ASPNETCORE_ENVIRONMENT=Development 
+    networks:
+      - backend-network
+
+networks:
+  backend-network:
+    driver: bridge

@@ -1,12 +1,15 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using review_microservice.Dtos;
 using review_microservice.Interfaces;
 using review_microservice.Models;
+using System.Security.Claims;
 
 namespace review_microservice.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class CommentController : ControllerBase
     {
         private readonly ICommentRepository _commentRepository;
@@ -18,15 +21,18 @@ namespace review_microservice.Controllers
             _reviewRepository = reviewRepository;
         }
 
+        //pobiera komentarze do recenzji o danym id, dostępne dla wszystkich, nawet niezalogowanych
+        [AllowAnonymous]
         [HttpGet("review/{reviewId}", Name = "GetCommentsByReview")]
         public async Task<ActionResult<IReadOnlyCollection<ReviewReadDto>>> GetCommentsByReview(int reviewId)
         {
             var review = await _reviewRepository.GetByIdAsync(reviewId);
 
-            if(review == null)
+            if (review == null)
             {
                 return NotFound($"Review with id {reviewId} not found.");
             }
+
 
             var comments = await _commentRepository.GetByReviewAsync(reviewId);
 
@@ -41,21 +47,28 @@ namespace review_microservice.Controllers
             return Ok(commentDtos);
         }
 
+        //dodaje komentarz do recenzji o danym id, dostępne tylko dla zalogowanych użytkowników (wszystkie role)
         [HttpPost]
         public async Task<ActionResult<CommentReadDto>> CreateComment([FromBody] CommentCreateDto dto)
         {
             var review = await _reviewRepository.GetByIdAsync(dto.ReviewId);
 
-            if(review == null)
+            if (review == null)
             {
                 return BadRequest($"Review with id {dto.ReviewId} not found.");
+            }
+
+            if (User.FindFirstValue(ClaimTypes.NameIdentifier) != dto.AppUserId)
+            {
+                return Forbid();
             }
 
             var comment = new Comment()
             {
                 Content = dto.Content,
                 CreatedDate = DateTime.UtcNow,
-                AppUserId = dto.AppUserId //na razie tak 
+                AppUserId = dto.AppUserId,
+                ReviewId = dto.ReviewId
             };
 
             var success = await _commentRepository.AddAsync(comment);
@@ -72,6 +85,33 @@ namespace review_microservice.Controllers
                 return CreatedAtRoute(nameof(GetCommentsByReview), new { reviewId = review.Id }, commentRead);
             }
             else return BadRequest();
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<ActionResult> DeleteComment(int id)
+        {
+            var comment = await _commentRepository.GetByIdAsync(id);
+            if (comment == null)
+            {
+                return NotFound($"Comment with id {id} not found.");
+            }
+
+            if(User.IsInRole("Admin") || 
+                User.IsInRole("Moderator") || 
+                User.FindFirstValue(ClaimTypes.NameIdentifier) == comment.AppUserId)
+            {
+                var success = await _commentRepository.DeleteAsync(comment);
+                if (success)
+                {
+                    return NoContent();
+                }
+                else return BadRequest($"Unable to delete comment with id: {id}");
+            }
+            else
+            {
+                return Forbid();
+            }
+            
         }
     }
 }

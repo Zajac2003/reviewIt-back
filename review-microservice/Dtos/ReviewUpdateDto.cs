@@ -1,9 +1,8 @@
-﻿using review_microservice.Models;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace review_microservice.Dtos
 {
-    public class ReviewCreateDto
+    public class ReviewUpdateDto
     {
         [Required(ErrorMessage = "Value is required.")]
         [Range(1, 10, ErrorMessage = "Value must be in range (1, 10)")]
@@ -15,10 +14,6 @@ namespace review_microservice.Dtos
 
         [MaxLength(10000, ErrorMessage = "Content is too long. Use up to 10000 characters.")]
         public string? Content { get; set; }
-
-
-        [Required(ErrorMessage = "AlbumId is required.")]
-        public int AlbumId { get; set; }
 
         [Required(ErrorMessage = "AppUserId is required.")]
         [StringLength(36, ErrorMessage = "Incorrect AppUserId.")]
