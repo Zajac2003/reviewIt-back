@@ -6,6 +6,7 @@ using review_microservice.Data;
 using review_microservice.Interfaces;
 using review_microservice.Repositories;
 using review_microservice.Services;
+using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 
@@ -74,7 +75,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuer = true,
             ValidateAudience = true,
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
-            ValidAudience = builder.Configuration["Jwt:Audience"]
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            RoleClaimType = ClaimTypes.Role,
+            NameClaimType = System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub
         };
 
         options.Events = new JwtBearerEvents
