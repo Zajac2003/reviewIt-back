@@ -7,6 +7,7 @@ using review_microservice.Interfaces;
 using review_microservice.Repositories;
 using review_microservice.Services;
 using System.Text;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -74,6 +75,23 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateAudience = true,
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
             ValidAudience = builder.Configuration["Jwt:Audience"]
+        };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnChallenge = async context =>
+            {
+                context.HandleResponse();
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                context.Response.ContentType = "application/json; charset=utf-8";
+                var payload = new
+                {
+                    title = "Unauthorized",
+                    detail = "Brak ważnego tokenu lub sesja wygasła. Zaloguj się ponownie.",
+                    status = 401
+                };
+                await context.Response.WriteAsync(JsonSerializer.Serialize(payload));
+            }
         };
     });
 
