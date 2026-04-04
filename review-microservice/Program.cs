@@ -83,11 +83,15 @@ builder.Services.AddHttpClient<IDiscogsService, DiscogsService>((serviceProvider
 {
     var configuration = serviceProvider.GetRequiredService<IConfiguration>();
 
-    var baseUrl = configuration["Discogs:BaseUrl"];
-    var userAgent = configuration["Discogs:UserAgent"];
+    var baseUrl = configuration["Discogs:BaseUrl"] ?? "https://api.discogs.com";
+    var userAgent = configuration["Discogs:UserAgent"]?.Trim();
+    if (string.IsNullOrEmpty(userAgent))
+    {
+        userAgent = "ReviewIT/1.0 (+https://github.com)";
+    }
 
-    client.BaseAddress = new Uri(baseUrl!);
-    client.DefaultRequestHeaders.Add("User-Agent", userAgent!);
+    client.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
+    client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", userAgent);
 });
 
 var app = builder.Build();
