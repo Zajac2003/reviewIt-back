@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -8,7 +8,6 @@ using System.Security.Claims;
 using user_microservice.Data;
 using user_microservice.Dtos;
 using user_microservice.Interfaces;
-using user_microservice.Migrations;
 using user_microservice.Models;
 
 namespace user_microservice.Controllers

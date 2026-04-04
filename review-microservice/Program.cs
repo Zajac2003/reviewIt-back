@@ -65,6 +65,7 @@ builder.Services.AddScoped<ICommentRepository, CommentRepository>();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
+        options.RequireHttpsMetadata = false;
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuerSigningKey = true,
@@ -75,6 +76,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidAudience = builder.Configuration["Jwt:Audience"]
         };
     });
+
+builder.Services.AddAuthorization();
 
 builder.Services.AddHttpClient<IDiscogsService, DiscogsService>((serviceProvider, client) =>
 {
