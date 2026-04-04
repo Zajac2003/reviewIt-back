@@ -50,7 +50,14 @@ builder.Services.AddSwaggerGen(options =>
 
 builder.Services.AddDbContext<AppDbContext>(opt =>
 {
-    opt.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
+    opt.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"),
+        sqlServerOptionsAction: sqlOptions =>
+        {
+            sqlOptions.EnableRetryOnFailure(
+                maxRetryCount: 5,
+                maxRetryDelay: TimeSpan.FromSeconds(30),
+                errorNumbersToAdd: null);
+        });
 });
 
 builder.Services.AddIdentity<AppUser, IdentityRole>(options =>
@@ -103,10 +110,10 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
-if (args.Length != 0 && args[0].Contains("seeddata"))
-{
-    await Seed.SeedUsersAndRolesAsync(app);
-}
+//if (args.Length != 0 && args[0].Contains("seeddata"))
+//{
+//    await Seed.SeedUsersAndRolesAsync(app);
+//}
 
 if (app.Environment.IsDevelopment())
 {
@@ -120,5 +127,21 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        var context = services.GetRequiredService<AppDbContext>();
+        context.Database.Migrate();
+        await Seed.SeedUsersAndRolesAsync(app);
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "Error during database migration or data insertion");
+    }
+}
 
 app.Run();

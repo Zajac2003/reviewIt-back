@@ -14,4 +14,4 @@ RUN dotnet publish -c Release -o out --no-restore
 FROM mcr.microsoft.com/dotnet/aspnet:8.0
 WORKDIR /App
 COPY --from=build /App/out .
-ENTRYPOINT ["dotnet", "review-microservice.dll"]
+ENTRYPOINT ["dotnet", "user-microservice.dll"]
