@@ -58,7 +58,8 @@ namespace user_microservice.Controllers
             var userDto = new AppUserReadDto
             {
                 Id = user.Id,
-                Username = user.UserName!
+                Username = user.UserName!,
+                Email = user.Email
             };
 
             return Ok(userDto);
@@ -86,7 +87,8 @@ namespace user_microservice.Controllers
             return Ok(new AppUserReadDto
             {
                 Id = user.Id,
-                Username = user.UserName!
+                Username = user.UserName!,
+                Email = user.Email
             });
         }
 

@@ -42,7 +42,30 @@ namespace review_microservice.Controllers
                 AppUserId = c.AppUserId,
                 Content = c.Content,
                 CreatedDate = c.CreatedDate,
-                Id = c.Id
+                Id = c.Id,
+                ReviewId = c.ReviewId
+            });
+
+            return Ok(commentDtos);
+        }
+
+        [HttpGet("me", Name = "GetMyComments")]
+        public async Task<ActionResult<IReadOnlyCollection<CommentReadDto>>> GetMyComments()
+        {
+            var userId = JwtUserClaims.GetUserId(User);
+            if (userId == null)
+            {
+                return Unauthorized();
+            }
+
+            var comments = await _commentRepository.GetByAppUserIdAsync(userId);
+            var commentDtos = comments.Select(c => new CommentReadDto
+            {
+                AppUserId = c.AppUserId,
+                Content = c.Content,
+                CreatedDate = c.CreatedDate,
+                Id = c.Id,
+                ReviewId = c.ReviewId
             });
 
             return Ok(commentDtos);
@@ -82,7 +105,8 @@ namespace review_microservice.Controllers
                     AppUserId = comment.AppUserId,
                     Content = comment.Content,
                     CreatedDate = comment.CreatedDate,
-                    Id = comment.Id
+                    Id = comment.Id,
+                    ReviewId = comment.ReviewId
                 };
                 return CreatedAtRoute(nameof(GetCommentsByReview), new { reviewId = review.Id }, commentRead);
             }
