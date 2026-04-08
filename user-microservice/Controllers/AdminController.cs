@@ -75,6 +75,12 @@ namespace user_microservice.Controllers
                 return Ok(new { message = "Użytkownik ma już tę rolę." });
             }
 
+            if (dto.RoleName == UserRoles.Admin)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden,
+                    new { message = "Nie można nadać roli Administrator z tego panelu." });
+            }
+
             var add = await _userManager.AddToRoleAsync(user, dto.RoleName);
             if (!add.Succeeded)
             {

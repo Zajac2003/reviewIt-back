@@ -113,9 +113,10 @@ namespace user_microservice.Controllers
             try
             {
                 principal = _tokenService.GetPrincipalFromExpiredToken(rawToken);
-            }catch(Exception ex)
+            }
+            catch
             {
-                return BadRequest($"Invalid token: {ex.Message}");
+                return BadRequest("Nieprawidłowy lub wygasły token.");
             }
 
             var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)
@@ -248,10 +249,46 @@ namespace user_microservice.Controllers
                     Roles = loginRoles.OrderBy(r => r).ToList()
                 });
             }
-            catch(Exception ex)
+            catch
             {
-                return StatusCode(500, $"Error generating token: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    new { message = "Wystąpił błąd serwera. Spróbuj ponownie później." });
             }
+        }
+
+        /// <summary>
+        /// Zwraca mapę id użytkownika → nazwa (UserName) dla podanych identyfikatorów.
+        /// Używane przez frontend do wyświetlania nicków przy danych z review API (same id).
+        /// </summary>
+        [AllowAnonymous]
+        [HttpPost("users/resolve-names")]
+        public async Task<ActionResult<Dictionary<string, string>>> ResolveUserNames(
+            [FromBody] ResolveUserNamesRequestDto dto)
+        {
+            var raw = dto.UserIds;
+            if (raw == null || raw.Count == 0)
+            {
+                return Ok(new Dictionary<string, string>());
+            }
+
+            var distinct = raw
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Select(id => id.Trim())
+                .Distinct()
+                .Take(100)
+                .ToList();
+
+            var result = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var id in distinct)
+            {
+                var u = await _userManager.FindByIdAsync(id);
+                if (u != null && !string.IsNullOrEmpty(u.UserName))
+                {
+                    result[id] = u.UserName;
+                }
+            }
+
+            return Ok(result);
         }
     }
 }
