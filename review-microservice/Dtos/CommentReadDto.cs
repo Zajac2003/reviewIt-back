@@ -1,4 +1,4 @@
-﻿using review_microservice.Models;
+using review_microservice.Models;
 using System.ComponentModel.DataAnnotations;
 
 namespace review_microservice.Dtos
@@ -9,5 +9,6 @@ namespace review_microservice.Dtos
         public string Content { get; set; }
         public DateTime CreatedDate { get; set; }
         public string AppUserId { get; set; }
+        public int ReviewId { get; set; }
     }
 }

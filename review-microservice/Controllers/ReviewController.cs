@@ -1,9 +1,10 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using review_microservice.Dtos;
 using review_microservice.Interfaces;
 using review_microservice.Models;
-using System.Security.Claims;
+
+using review_microservice;
 
 namespace review_microservice.Controllers
 {
@@ -65,7 +66,8 @@ namespace review_microservice.Controllers
         [HttpPost]
         public async Task<ActionResult<ReviewReadDto>> CreateReview([FromBody] ReviewCreateDto dto)
         {
-            if (dto.AppUserId != User.FindFirstValue(ClaimTypes.NameIdentifier))
+            var callerId = JwtUserClaims.GetUserId(User);
+            if (callerId == null || dto.AppUserId != callerId)
             {
                 return Forbid("You can only create reviews for yourself.");
             }
@@ -107,8 +109,8 @@ namespace review_microservice.Controllers
                 return NotFound($"Review with id {id} not found.");
             }
 
-            if (review.AppUserId != dto.AppUserId ||
-                User.FindFirstValue(ClaimTypes.NameIdentifier) != review.AppUserId)
+            var callerId = JwtUserClaims.GetUserId(User);
+            if (review.AppUserId != dto.AppUserId || callerId != review.AppUserId)
             {
                 return Forbid("You can only update your own reviews.");
             }

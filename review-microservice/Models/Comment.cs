@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using review_microservice.Models;
+using System.ComponentModel.DataAnnotations;
 
 namespace review_microservice.Models
 {
@@ -7,10 +8,12 @@ namespace review_microservice.Models
         [Key]
         public int Id { get; set; }
         [Required]
+        [MaxLength(2000)]
         public string Content { get; set; }
         [Required]
         public DateTime CreatedDate { get; set; } = DateTime.Now;
         [Required]
+        [MaxLength(36)]
         public string AppUserId { get; set; }
         [Required]
         public int ReviewId { get; set; }

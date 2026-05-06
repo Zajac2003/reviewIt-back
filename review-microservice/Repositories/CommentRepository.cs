@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using review_microservice.Data;
 using review_microservice.Interfaces;
 using review_microservice.Models;
@@ -42,6 +42,15 @@ namespace review_microservice.Repositories
         {
             return await _context.Comments
                 .Where(c => c.ReviewId == reviewId)
+                .ToArrayAsync();
+        }
+
+        public async Task<IReadOnlyCollection<Comment>> GetByAppUserIdAsync(string appUserId)
+        {
+            return await _context.Comments
+                .AsNoTracking()
+                .Where(c => c.AppUserId == appUserId)
+                .OrderByDescending(c => c.CreatedDate)
                 .ToArrayAsync();
         }
 

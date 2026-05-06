@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 using user_microservice.Models;
 
 namespace user_microservice.Data
@@ -68,6 +68,7 @@ namespace user_microservice.Data
                         EmailConfirmed = true,
                     };
                     await userManager.CreateAsync(newMod, "Abc-12345");
+                    await userManager.AddToRoleAsync(newMod, UserRoles.User);
                     await userManager.AddToRoleAsync(newMod, UserRoles.Moderator);
                 }
             }

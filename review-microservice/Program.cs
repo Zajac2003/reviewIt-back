@@ -6,7 +6,9 @@ using review_microservice.Data;
 using review_microservice.Interfaces;
 using review_microservice.Repositories;
 using review_microservice.Services;
+using System.Security.Claims;
 using System.Text;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -65,6 +67,7 @@ builder.Services.AddScoped<ICommentRepository, CommentRepository>();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
+        options.RequireHttpsMetadata = false;
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuerSigningKey = true,
@@ -72,19 +75,55 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuer = true,
             ValidateAudience = true,
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
-            ValidAudience = builder.Configuration["Jwt:Audience"]
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            RoleClaimType = ClaimTypes.Role,
+            NameClaimType = System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub
+        };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnChallenge = async context =>
+            {
+                context.HandleResponse();
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                context.Response.ContentType = "application/json; charset=utf-8";
+                var payload = new
+                {
+                    title = "Unauthorized",
+                    detail = "Brak ważnego tokenu lub sesja wygasła. Zaloguj się ponownie.",
+                    status = 401
+                };
+                await context.Response.WriteAsync(JsonSerializer.Serialize(payload));
+            }
         };
     });
+
+builder.Services.AddAuthorization();
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("VuePolicy", policy =>
+    {
+        policy.WithOrigins(builder.Configuration["Jwt:Audience"] ?? "http://localhost:5173")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
 
 builder.Services.AddHttpClient<IDiscogsService, DiscogsService>((serviceProvider, client) =>
 {
     var configuration = serviceProvider.GetRequiredService<IConfiguration>();
 
-    var baseUrl = configuration["Discogs:BaseUrl"];
-    var userAgent = configuration["Discogs:UserAgent"];
+    var baseUrl = configuration["Discogs:BaseUrl"] ?? "https://api.discogs.com";
+    var userAgent = configuration["Discogs:UserAgent"]?.Trim();
+    if (string.IsNullOrEmpty(userAgent))
+    {
+        userAgent = "ReviewIT/1.0 (+https://github.com)";
+    }
 
-    client.BaseAddress = new Uri(baseUrl!);
-    client.DefaultRequestHeaders.Add("User-Agent", userAgent!);
+    client.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
+    client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", userAgent);
 });
 
 var app = builder.Build();
@@ -98,9 +137,17 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+    app.UseDeveloperExceptionPage();
+}
+else
+{
+    app.UseExceptionHandler("/error");
+    app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+
+
+    app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

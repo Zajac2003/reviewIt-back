@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -8,8 +8,8 @@ using System.Security.Claims;
 using user_microservice.Data;
 using user_microservice.Dtos;
 using user_microservice.Interfaces;
-using user_microservice.Migrations;
 using user_microservice.Models;
+using System.Linq;
 
 namespace user_microservice.Controllers
 {
@@ -56,10 +56,13 @@ namespace user_microservice.Controllers
                 return NotFound("User not found.");
             }
 
+            var roles = await _userManager.GetRolesAsync(user);
             var userDto = new AppUserReadDto
             {
                 Id = user.Id,
-                Username = user.UserName!
+                Username = user.UserName!,
+                Email = user.Email,
+                Roles = roles.OrderBy(r => r).ToList()
             };
 
             return Ok(userDto);
@@ -84,10 +87,13 @@ namespace user_microservice.Controllers
                 return NotFound("User not found.");
             }
 
+            var meRoles = await _userManager.GetRolesAsync(user);
             return Ok(new AppUserReadDto
             {
                 Id = user.Id,
-                Username = user.UserName!
+                Username = user.UserName!,
+                Email = user.Email,
+                Roles = meRoles.OrderBy(r => r).ToList()
             });
         }
 
@@ -107,9 +113,10 @@ namespace user_microservice.Controllers
             try
             {
                 principal = _tokenService.GetPrincipalFromExpiredToken(rawToken);
-            }catch(Exception ex)
+            }
+            catch
             {
-                return BadRequest($"Invalid token: {ex.Message}");
+                return BadRequest("Nieprawidłowy lub wygasły token.");
             }
 
             var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier)
@@ -141,11 +148,13 @@ namespace user_microservice.Controllers
 
             Response.Cookies.Append("refreshToken", newRefreshToken, GetRefreshTokenCookieOptions());
 
+            var refreshRoles = await _userManager.GetRolesAsync(user);
             return Ok(new AuthResponseDto
             {
                 Id = user.Id,
                 Email = user.Email!,
-                Token = newJwtToken
+                Token = newJwtToken,
+                Roles = refreshRoles.OrderBy(r => r).ToList()
             });
         }
 
@@ -189,6 +198,7 @@ namespace user_microservice.Controllers
             {
                 Id = user.Id,
                 Email = user.Email!,
+                Roles = new List<string> { UserRoles.User }
             });
         }
 
@@ -196,7 +206,7 @@ namespace user_microservice.Controllers
         [HttpPost("login")]
         public async Task<ActionResult<AuthResponseDto>> Login([FromBody] LoginInputDto model)
         {
-            if (User.Identity.IsAuthenticated)
+            if (User.Identity?.IsAuthenticated == true)
             {
                 return BadRequest("You are already logged in.");
             }
@@ -230,17 +240,55 @@ namespace user_microservice.Controllers
 
                 Response.Cookies.Append("refreshToken", refreshToken, cookieOptions);
 
+                var loginRoles = await _userManager.GetRolesAsync(user);
                 return Ok(new AuthResponseDto
                 {
                     Id = user.Id,
                     Email = user.Email!,
-                    Token = token
+                    Token = token,
+                    Roles = loginRoles.OrderBy(r => r).ToList()
                 });
             }
-            catch(Exception ex)
+            catch
             {
-                return StatusCode(500, $"Error generating token: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    new { message = "Wystąpił błąd serwera. Spróbuj ponownie później." });
             }
+        }
+
+        /// <summary>
+        /// Zwraca mapę id użytkownika → nazwa (UserName) dla podanych identyfikatorów.
+        /// Używane przez frontend do wyświetlania nicków przy danych z review API (same id).
+        /// </summary>
+        [AllowAnonymous]
+        [HttpPost("users/resolve-names")]
+        public async Task<ActionResult<Dictionary<string, string>>> ResolveUserNames(
+            [FromBody] ResolveUserNamesRequestDto dto)
+        {
+            var raw = dto.UserIds;
+            if (raw == null || raw.Count == 0)
+            {
+                return Ok(new Dictionary<string, string>());
+            }
+
+            var distinct = raw
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Select(id => id.Trim())
+                .Distinct()
+                .Take(100)
+                .ToList();
+
+            var result = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var id in distinct)
+            {
+                var u = await _userManager.FindByIdAsync(id);
+                if (u != null && !string.IsNullOrEmpty(u.UserName))
+                {
+                    result[id] = u.UserName;
+                }
+            }
+
+            return Ok(result);
         }
     }
 }

@@ -27,7 +27,7 @@ services:
       - Jwt__Issuer=http://auth-api:5000
       - Jwt__Audience=http://review-api:5001
       - ALLOWEDHOSTS=localhost;auth-api;review-api
-      - ASPNETCORE_ENVIRONMENT=Development
+      #- ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
     networks:
       - backend-network
@@ -48,7 +48,7 @@ services:
       - Jwt__Audience=http://review-api:5001
       - ALLOWEDHOSTS=localhost;auth-api;review-api
       - ASPNETCORE_URLS=http://+:8080
-      - ASPNETCORE_ENVIRONMENT=Development 
+      #- ASPNETCORE_ENVIRONMENT=Development 
     networks:
       - backend-network
 
