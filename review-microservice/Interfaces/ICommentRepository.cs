@@ -1,4 +1,4 @@
-﻿using review_microservice.Models;
+using review_microservice.Models;
 
 namespace review_microservice.Interfaces
 {
@@ -9,6 +9,7 @@ namespace review_microservice.Interfaces
         Task<bool> DeleteAsync(Comment comment);
         Task<bool> SaveAsync();
         Task<IReadOnlyCollection<Comment>> GetByReviewAsync(int reviewId);
+        Task<IReadOnlyCollection<Comment>> GetByAppUserIdAsync(string appUserId);
         Task<Comment?> GetByIdAsync(int id);
     }
 }

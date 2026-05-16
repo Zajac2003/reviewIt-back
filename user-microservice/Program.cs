@@ -131,16 +131,25 @@ app.MapControllers();
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
+    var logger = services.GetRequiredService<ILogger<Program>>();
     try
     {
         var context = services.GetRequiredService<AppDbContext>();
-        context.Database.Migrate();
+        await context.Database.MigrateAsync();
+    }
+    catch (Exception ex)
+    {
+        logger.LogCritical(ex, "Database migration failed — uruchom: dotnet ef database update (user-microservice)");
+        throw;
+    }
+
+    try
+    {
         await Seed.SeedUsersAndRolesAsync(app);
     }
     catch (Exception ex)
     {
-        var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "Error during database migration or data insertion");
+        logger.LogError(ex, "Seed users/roles failed (mozesz zignorowac jesli baza juz ma dane)");
     }
 }
 

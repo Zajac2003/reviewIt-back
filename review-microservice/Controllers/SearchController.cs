@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using review_microservice.Dtos;
 using review_microservice.Interfaces;
@@ -45,6 +45,41 @@ namespace review_microservice.Controllers
                 return StatusCode(500, new
                 {
                     message = "Unexpected server error.",
+                    details = ex.Message
+                });
+            }
+        }
+
+        [HttpGet("discogs/master/{id:int}")]
+        public async Task<ActionResult<DiscogsMasterDetailDto>> GetDiscogsMaster(int id)
+        {
+            try
+            {
+                var master = await _discogsService.GetMasterByIdAsync(id);
+                if (master == null)
+                {
+                    return NotFound(new { message = "Nie znaleziono wydania w Discogs dla tego ID." });
+                }
+
+                return Ok(master);
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                return BadRequest(new { message = "Nieprawidłowe ID." });
+            }
+            catch (HttpRequestException ex)
+            {
+                return StatusCode(502, new
+                {
+                    message = "Błąd podczas wywołania Discogs API.",
+                    details = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    message = "Nieoczekiwany błąd serwera.",
                     details = ex.Message
                 });
             }

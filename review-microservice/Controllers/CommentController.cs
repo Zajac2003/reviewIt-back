@@ -1,9 +1,10 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using review_microservice.Dtos;
 using review_microservice.Interfaces;
 using review_microservice.Models;
-using System.Security.Claims;
+
+using review_microservice;
 
 namespace review_microservice.Controllers
 {
@@ -41,7 +42,30 @@ namespace review_microservice.Controllers
                 AppUserId = c.AppUserId,
                 Content = c.Content,
                 CreatedDate = c.CreatedDate,
-                Id = c.Id
+                Id = c.Id,
+                ReviewId = c.ReviewId
+            });
+
+            return Ok(commentDtos);
+        }
+
+        [HttpGet("me", Name = "GetMyComments")]
+        public async Task<ActionResult<IReadOnlyCollection<CommentReadDto>>> GetMyComments()
+        {
+            var userId = JwtUserClaims.GetUserId(User);
+            if (userId == null)
+            {
+                return Unauthorized();
+            }
+
+            var comments = await _commentRepository.GetByAppUserIdAsync(userId);
+            var commentDtos = comments.Select(c => new CommentReadDto
+            {
+                AppUserId = c.AppUserId,
+                Content = c.Content,
+                CreatedDate = c.CreatedDate,
+                Id = c.Id,
+                ReviewId = c.ReviewId
             });
 
             return Ok(commentDtos);
@@ -59,7 +83,8 @@ namespace review_microservice.Controllers
                 return BadRequest($"Review with id {dto.ReviewId} not found.");
             }
 
-            if (User.FindFirstValue(ClaimTypes.NameIdentifier) != dto.AppUserId)
+            var callerId = JwtUserClaims.GetUserId(User);
+            if (callerId == null || callerId != dto.AppUserId)
             {
                 return Forbid();
             }
@@ -81,7 +106,8 @@ namespace review_microservice.Controllers
                     AppUserId = comment.AppUserId,
                     Content = comment.Content,
                     CreatedDate = comment.CreatedDate,
-                    Id = comment.Id
+                    Id = comment.Id,
+                    ReviewId = comment.ReviewId
                 };
                 return CreatedAtRoute(nameof(GetCommentsByReview), new { reviewId = review.Id }, commentRead);
             }
@@ -97,9 +123,10 @@ namespace review_microservice.Controllers
                 return NotFound($"Comment with id {id} not found.");
             }
 
-            if(User.IsInRole("Admin") || 
-                User.IsInRole("Moderator") || 
-                User.FindFirstValue(ClaimTypes.NameIdentifier) == comment.AppUserId)
+            var callerId = JwtUserClaims.GetUserId(User);
+            if (User.IsInRole("Admin") ||
+                User.IsInRole("Moderator") ||
+                callerId == comment.AppUserId)
             {
                 var success = await _commentRepository.DeleteAsync(comment);
                 if (success)
