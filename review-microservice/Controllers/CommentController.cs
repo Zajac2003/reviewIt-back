@@ -49,6 +49,7 @@ namespace review_microservice.Controllers
 
         //dodaje komentarz do recenzji o danym id, dostępne tylko dla zalogowanych użytkowników (wszystkie role)
         [HttpPost]
+        [Authorize(Policy = "NotBannedPolicy")]
         public async Task<ActionResult<CommentReadDto>> CreateComment([FromBody] CommentCreateDto dto)
         {
             var review = await _reviewRepository.GetByIdAsync(dto.ReviewId);

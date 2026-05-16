@@ -36,6 +36,12 @@ namespace review_microservice.Repositories
             return reviews;
         }
 
+        public async Task<bool> UserHasReviewForAlbum(string userId, int albumId)
+        {
+            return await _context.Reviews
+                .AnyAsync(r => r.AppUserId == userId && r.AlbumId == albumId);
+        }
+
         public async Task<Review> GetByIdAsync(int id)
         {
             Review review = await _context.Reviews

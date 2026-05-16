@@ -91,6 +91,27 @@ namespace user_microservice.Controllers
             });
         }
 
+        [Authorize(Roles = UserRoles.Admin + "," + UserRoles.Moderator)]
+        [HttpPost("changeBanStatus")]
+        public async Task<ActionResult<BanResponseDto>> ChangeUserBanStatus([FromBody] BanInputDto dto)
+        {
+            var user = await _userManager.FindByIdAsync(dto.UserId);
+
+            if (user == null)
+            {
+                return NotFound("User not found.");
+            }
+
+            user.IsBanned = dto.ShouldBeBanned;
+            await _userManager.UpdateAsync(user);
+
+            return Ok(new BanResponseDto
+            {
+                UserId = user.Id,
+                IsBanned = user.IsBanned
+            });
+        }
+
         [AllowAnonymous]
         [HttpPost("refresh")]
         public async Task<ActionResult<AuthResponseDto>> RefreshToken([FromBody] RefreshTokenDto dto)

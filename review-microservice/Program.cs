@@ -76,6 +76,13 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
+builder.Services.AddAuthorization(
+    options =>
+    {
+        options.AddPolicy("NotBannedPolicy", policy => policy.RequireClaim("IsBanned", "False"));
+    }
+);
+
 builder.Services.AddHttpClient<IDiscogsService, DiscogsService>((serviceProvider, client) =>
 {
     var configuration = serviceProvider.GetRequiredService<IConfiguration>();
@@ -85,6 +92,17 @@ builder.Services.AddHttpClient<IDiscogsService, DiscogsService>((serviceProvider
 
     client.BaseAddress = new Uri(baseUrl!);
     client.DefaultRequestHeaders.Add("User-Agent", userAgent!);
+});
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("VuePolicy", policy =>
+    {
+        policy.WithOrigins(builder.Configuration["Jwt:Audience"] ?? "http://localhost:5173")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
 });
 
 var app = builder.Build();

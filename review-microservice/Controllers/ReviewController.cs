@@ -63,12 +63,19 @@ namespace review_microservice.Controllers
         }
 
         [HttpPost]
+        [Authorize(Policy = "NotBannedPolicy")]
         public async Task<ActionResult<ReviewReadDto>> CreateReview([FromBody] ReviewCreateDto dto)
         {
             if (dto.AppUserId != User.FindFirstValue(ClaimTypes.NameIdentifier))
             {
                 return Forbid("You can only create reviews for yourself.");
             }
+
+            if (await _reviewRepository.UserHasReviewForAlbum(dto.AppUserId, dto.AlbumId))
+            {
+                return BadRequest("You have already submitted a review for this album.");
+            }
+
             var review = new Review()
             {
                 Title = dto.Title,
@@ -99,6 +106,7 @@ namespace review_microservice.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Policy = "NotBannedPolicy")]
         public async Task<ActionResult> UpdateReview(int id, [FromBody] ReviewUpdateDto dto)
         {
             var review = await _reviewRepository.GetByIdAsync(id);

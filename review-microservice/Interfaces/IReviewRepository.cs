@@ -11,5 +11,6 @@ namespace review_microservice.Interfaces
         Task<bool> SaveAsync();
         Task<IReadOnlyCollection<Review>> GetAllAsync();
         Task<Review> GetByIdWithCommentsAsync(int id);
+        Task<bool> UserHasReviewForAlbum(string userId, int albumId);
     }
 }
