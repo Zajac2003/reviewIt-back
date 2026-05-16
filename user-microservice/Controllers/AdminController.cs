@@ -44,7 +44,8 @@ namespace user_microservice.Controllers
                     Id = u.Id,
                     Email = u.Email ?? string.Empty,
                     Username = u.UserName ?? string.Empty,
-                    Roles = roles.OrderBy(r => r).ToList()
+                    Roles = roles.OrderBy(r => r).ToList(),
+                    IsBanned = u.IsBanned
                 });
             }
 

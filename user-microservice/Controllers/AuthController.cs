@@ -62,7 +62,8 @@ namespace user_microservice.Controllers
                 Id = user.Id,
                 Username = user.UserName!,
                 Email = user.Email,
-                Roles = roles.OrderBy(r => r).ToList()
+                Roles = roles.OrderBy(r => r).ToList(),
+                IsBanned = user.IsBanned
             };
 
             return Ok(userDto);
