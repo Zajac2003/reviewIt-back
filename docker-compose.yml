@@ -11,6 +11,8 @@ services:
       - "127.0.0.1:1433:1433"
     networks:
       - backend-network
+    volumes:
+      - sqlserver-data:/var/opt/mssql
 
   # --- AUTH API ---
   auth-api:
@@ -55,3 +57,6 @@ services:
 networks:
   backend-network:
     driver: bridge
+
+volumes:
+  sqlserver-data:  
