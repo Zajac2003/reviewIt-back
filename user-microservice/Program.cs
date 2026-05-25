@@ -95,11 +95,16 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+var corsOrigins = (builder.Configuration["Cors:AllowedOrigins"]
+    ?? builder.Configuration["Jwt:Audience"]
+    ?? "http://localhost:5173")
+    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("VuePolicy", policy =>
     {
-        policy.WithOrigins(builder.Configuration["Jwt:Audience"] ?? "http://localhost:5173")
+        policy.WithOrigins(corsOrigins)
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
@@ -122,6 +127,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseCors("VuePolicy");
 
 app.UseAuthentication();
 app.UseAuthorization();
