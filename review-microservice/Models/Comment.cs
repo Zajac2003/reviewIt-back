@@ -11,7 +11,7 @@ namespace review_microservice.Models
         [MaxLength(2000)]
         public string Content { get; set; }
         [Required]
-        public DateTime CreatedDate { get; set; } = DateTime.Now;
+        public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
         [Required]
         [MaxLength(36)]
         public string AppUserId { get; set; }
