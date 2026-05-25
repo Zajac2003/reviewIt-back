@@ -8,9 +8,7 @@ namespace review_microservice.Data
         {
             using (var serviceScope = applicationBuilder.ApplicationServices.CreateScope())
             {
-                var context = serviceScope.ServiceProvider.GetService<AppDbContext>();
-
-                context.Database.EnsureCreated();
+                var context = serviceScope.ServiceProvider.GetRequiredService<AppDbContext>();
 
                 if (!context.Reviews.Any())
                 {
