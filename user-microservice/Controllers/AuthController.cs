@@ -20,30 +20,36 @@ namespace user_microservice.Controllers
         private readonly IConfiguration _configuration;
         private readonly UserManager<AppUser> _userManager;
         private readonly ITokenService _tokenService;
+        private readonly ILogger<AuthController> _logger;
         private readonly int _refreshTokenExpirationInDays;
 
         public AuthController(
             IConfiguration configuration,
             UserManager<AppUser> userManager,
-            ITokenService tokenService)
+            ITokenService tokenService,
+            ILogger<AuthController> logger)
         {
             _configuration = configuration;
             _userManager = userManager;
             _tokenService = tokenService;
+            _logger = logger;
             _refreshTokenExpirationInDays = _configuration.GetValue<int>("RefreshToken:ExpirationInDays", 7);
         }
 
         private CookieOptions GetRefreshTokenCookieOptions()
         {
-            var cookieOptions = new CookieOptions
+            var isProduction = !string.Equals(
+                Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"),
+                "Development",
+                StringComparison.OrdinalIgnoreCase);
+
+            return new CookieOptions
             {
                 HttpOnly = true,
                 Expires = DateTime.UtcNow.AddDays(_refreshTokenExpirationInDays),
-                SameSite = SameSiteMode.Lax, // pozwala na działanie między localhostami
-                Secure = false // z https musi być true
+                SameSite = isProduction ? SameSiteMode.None : SameSiteMode.Lax,
+                Secure = isProduction
             };
-
-            return cookieOptions;
         }
 
         [HttpGet("{id}")]
@@ -271,8 +277,9 @@ namespace user_microservice.Controllers
                     Roles = loginRoles.OrderBy(r => r).ToList()
                 });
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Login failed for {Email}", model.Email);
                 return StatusCode(StatusCodes.Status500InternalServerError,
                     new { message = "Wystąpił błąd serwera. Spróbuj ponownie później." });
             }
