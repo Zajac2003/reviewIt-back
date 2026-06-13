@@ -10,6 +10,7 @@ namespace user_microservice.Data
             using (var serviceScope = applicationBuilder.ApplicationServices.CreateScope())
             {
                 //Roles
+                //tutaj komentarz na potrzebę testów
                 var roleManager = serviceScope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
 
                 if (!await roleManager.RoleExistsAsync(UserRoles.Admin))
