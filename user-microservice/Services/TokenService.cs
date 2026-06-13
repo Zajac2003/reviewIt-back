@@ -56,9 +56,14 @@ namespace user_microservice.Services
                 throw new InvalidOperationException("JWT Audience is missing in configuration.");
             }
 
-            if (!double.TryParse(expirationMinutes, out var tokenExpirationInMinutes))
+            if (!double.TryParse(expirationMinutes, out var tokenExpirationInMinutes) || tokenExpirationInMinutes <= 0)
             {
-                throw new InvalidOperationException("JWT TokenExpirationInMinutes is missing or invalid.");
+                tokenExpirationInMinutes = 15;
+            }
+
+            if (jwtKey.Length < 32)
+            {
+                throw new InvalidOperationException("JWT Key must be at least 32 characters.");
             }
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
